@@ -28,7 +28,8 @@ bot.setWebHook(WEBHOOK_URL);
 
 // Endpoint del webhook
 app.post("/webhook", (req, res) => {
-  bot.processUpdate(req.body);
+ console.log("Webhook recibido:", JSON.stringify(req.body));
+ bot.processUpdate(req.body);
   res.sendStatus(200);
 });
 
