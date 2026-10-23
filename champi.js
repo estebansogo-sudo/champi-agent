@@ -4,15 +4,41 @@ global.WebSocket = require("ws");
 const TelegramBot = require("node-telegram-bot-api");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
+const express = require("express");
 
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
+const app = express();
+app.use(express.json());
+
+const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
   { realtime: { enabled: false } }
 );
 
-console.log("Champi está arrancando...");
+const PORT = process.env.PORT || 3000;
+const WEBHOOK_URL = process.env.RENDER_EXTERNAL_URL 
+  ? `${process.env.RENDER_EXTERNAL_URL}/webhook`
+  : `https://TU-SERVICIO.onrender.com/webhook`; // cámbialo después
+
+console.log("Champi está arrancando en modo webhook...");
+
+// Configurar webhook
+bot.setWebHook(WEBHOOK_URL);
+
+// Endpoint del webhook
+app.post("/webhook", (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
+
+app.get("/", (req, res) => {
+  res.send("Champi está activo");
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor escuchando en puerto ${PORT}`);
+});
 
 // ==================== HERRAMIENTAS ====================
 
@@ -80,7 +106,6 @@ async function callGroq(messages) {
     })
   });
   const data = await response.json();
-console.log("Respuesta de Groq:", JSON.stringify(data, null, 2));
   return data.choices?.[0]?.message?.content || "No he podido generar una respuesta.";
 }
 
@@ -95,7 +120,6 @@ bot.on("message", async (msg) => {
 
   console.log(`[${userName}] ${text}`);
 
-  // System prompt
   const systemPrompt = `Eres Champi, el agente experto en cultivo de champiñones de Soriano Cultivos.
 Gestionas 27 salas. Hablas en español de España, de forma clara, profesional y proactiva.
 El usuario se llama ${userName}.
@@ -115,7 +139,6 @@ Si no necesitas datos, responde normalmente.`;
 
   let reply = await callGroq(messages);
 
-  // Detectar si quiere usar una herramienta
   try {
     const action = JSON.parse(reply);
     if (action.action) {
@@ -125,16 +148,11 @@ Si no necesitas datos, responde normalmente.`;
       else if (action.action === "create_task") result = await createTask(action.sala_id, action.title, action.description);
       else if (action.action === "save_learning") result = await saveLearning(action.content, action.sala_id);
 
-      // Segunda llamada con el resultado
       messages.push({ role: "assistant", content: reply });
       messages.push({ role: "user", content: `Resultado de la herramienta: ${JSON.stringify(result)}` });
       reply = await callGroq(messages);
     }
-  } catch (e) {
-    // No es JSON, es respuesta normal
-  }
+  } catch (e) {}
 
   bot.sendMessage(chatId, reply);
 });
-
-bot.on("polling_error", (err) => console.error("Error de polling:", err));
