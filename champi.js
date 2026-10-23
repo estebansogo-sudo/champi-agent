@@ -17,10 +17,7 @@ const supabase = createClient(
 );
 
 const PORT = process.env.PORT || 3000;
-const WEBHOOK_URL = process.env.RENDER_EXTERNAL_URL 
-  ? `${process.env.RENDER_EXTERNAL_URL}/webhook`
-  : `https://TU-SERVICIO.onrender.com/webhook`; // cámbialo después
-
+const WEBHOOK_URL = `${process.env.RENDER_EXTERNAL_URL}/webhook`;
 console.log("Champi está arrancando en modo webhook...");
 
 // Configurar webhook
@@ -38,6 +35,7 @@ app.get("/", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en puerto ${PORT}`);
+  bot.setWebHook(WEBHOOK_URL);
 });
 
 // ==================== HERRAMIENTAS ====================
