@@ -4,43 +4,15 @@ global.WebSocket = require("ws");
 const TelegramBot = require("node-telegram-bot-api");
 const { createClient } = require("@supabase/supabase-js");
 require("dotenv").config();
-const express = require("express");
 
-const app = express();
-app.use(express.json());
-
-const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
-bot.deleteWebHook().then(() => {
-  console.log("Webhook anterior eliminado");
-});
+const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
   { realtime: { enabled: false } }
 );
 
-const PORT = process.env.PORT || 3000;
-const WEBHOOK_URL = `${process.env.RENDER_EXTERNAL_URL}/webhook`;
-console.log("Champi está arrancando en modo webhook...");
-
-// Configurar webhook
-bot.setWebHook(WEBHOOK_URL);
-
-// Endpoint del webhook
-app.post("/webhook", (req, res) => {
- console.log("Webhook recibido:", JSON.stringify(req.body));
- bot.processUpdate(req.body);
-  res.sendStatus(200);
-});
-
-app.get("/", (req, res) => {
-  res.send("Champi está activo");
-});
-
-app.listen(PORT, () => {
-  console.log(`Servidor escuchando en puerto ${PORT}`);
-  bot.setWebHook(WEBHOOK_URL);
-});
+console.log("Champi está arrancando...");
 
 // ==================== HERRAMIENTAS ====================
 
@@ -158,3 +130,5 @@ Si no necesitas datos, responde normalmente.`;
 
   bot.sendMessage(chatId, reply);
 });
+
+bot.on("polling_error", (err) => console.error("Error de polling:", err));
