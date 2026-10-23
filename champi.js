@@ -10,6 +10,9 @@ const app = express();
 app.use(express.json());
 
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
+bot.deleteWebHook().then(() => {
+  console.log("Webhook anterior eliminado");
+});
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
